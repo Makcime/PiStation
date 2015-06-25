@@ -1528,7 +1528,10 @@ init_mathjax();
 <body>
 
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="détection-des-composant-sur-le-bus-i2c">Détection des composant sur le bus i2c</h1>
+<h1 id="grosse-avancée-coté-software-cette-semaine">** Grosse avancée coté software cette semaine ! **</h1>
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="détection-des-composants-sur-le-bus-i2c">Détection des composants sur le bus i2c</h1>
 <pre class="shell"><code>pi@raspberrypi ~ $ sudo i2cdetect 1
 WARNING! This program can confuse your I2C bus, cause data loss and worse!
 I will probe file /dev/i2c-1.
@@ -1545,41 +1548,49 @@ Continue? [Y/n]
 70: -- -- -- -- -- -- -- -- </code></pre>
 </div>
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="addressage-sur-le-bus">Addressage sur le bus</h1>
+<h1 id="addressage-sur-le-bus-i2c">Addressage sur le bus I2C</h1>
 <table>
 <thead>
 <tr class="header">
 <th align="center">Address</th>
-<th align="center">Comp</th>
+<th align="center">Sensor</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td align="center">0x48</td>
-<td align="center">Temperature 1</td>
+<td align="center">ADC</td>
 </tr>
 <tr class="even">
 <td align="center">0x49</td>
-<td align="center">Temperature 2</td>
+<td align="center">Temperature 1</td>
 </tr>
 <tr class="odd">
 <td align="center">0x4C</td>
-<td align="center">Temperature 3</td>
+<td align="center">Temperature 2</td>
 </tr>
 <tr class="even">
 <td align="center">0x4F</td>
-<td align="center"></td>
+<td align="center">Temperature 2</td>
 </tr>
 <tr class="odd">
 <td align="center">0x51</td>
-<td align="center"></td>
+<td align="center">Humidity</td>
 </tr>
 <tr class="even">
 <td align="center">0x60</td>
-<td align="center"></td>
+<td align="center">Pressure</td>
 </tr>
 </tbody>
 </table>
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="programmation">Programmation</h1>
+<ul>
+<li>Écriture de 3 scripts python capables de communiquer avec les différents capteurs et d'interpreter les données renvoyées.</li>
+<li>Utilisation du module <em>smbus</em> pour la communication i2c.</li>
+<li>Mise en ligne des source du projet sur <a href="https://github.com/Makcime/PiStation.git">Github</a></li>
+</ul>
 </div>
 <div class="text_cell_render border-box-sizing rendered_html">
 <h1 id="mesure-de-la-température">Mesure de la température</h1>
@@ -1589,13 +1600,39 @@ pi@raspberrypi ~ $sudo i2cget -y 1 0x4c 0x00 w | awk &#39;{print( (&quot;0x&quot
 28.5
 pi@raspberrypi ~ $sudo i2cget -y 1 0x4f 0x00 w | awk &#39;{print( (&quot;0x&quot;substr($1,5,2)substr($1,3,1))*0.0625) }&#39;
 22</code></pre>
-<p>Voilà un premier test de mesure de température sur les capteurs lm75. On peut constater qu'il y a un défférence 4°C entre les capteur présent sur la carte et le capteur externe. C'est évidement le capteur externe qui correspond le plus précisement à la température ambiante réele.</p>
+<p>Voilà un premier test de mesure de température sur les capteurs lm75. On peut constater qu'il y a une défférence 4°C entre les capteur présent sur la carte et le capteur externe. C'est évidement le capteur externe qui correspond le plus précisement à la température ambiante réele.</p>
 </div>
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="data-logging-from-python-using-matplotlib">Data logging from python using Matplotlib</h1>
-<pre class="sh"><code>sudo apt-get install python-smbus
-sudo apt-get install python-scipy
-sudo apt-get install python-matplotlib</code></pre>
+<h2 id="output">output :</h2>
+<pre class="shell"><code>pi@raspberrypi ~/piStation $ sudo python lm75.py 
+Temp on  0x49 : 29.5 ° C
+Temp on  0x4c : 29.5 ° C
+Temp on  0x4f : 21.5 ° C</code></pre>
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="mesure-de-la-pression-atmosphérique">Mesure de la pression atmosphérique</h1>
+<h2 id="output">output :</h2>
+<pre class="shell"><code>pi@raspberrypi ~/piStation $ sudo python MPL3115A2.py 
+0xc4
+Waiting for data...
+Reading sensor data...
+status: 0b0
+Pressure and Temperature at 04/22/2015 13:17:55+0000
+100131.5 Pa
+28.1875°C
+82.7375°F</code></pre>
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="mesure-du-taux-dhumidité">Mesure du taux d'humidité</h1>
+<h2 id="output">output :</h2>
+<pre class="text"><code>pi@raspberrypi ~/piStation $ sudo python hh10d.py 
+Sens: 398
+Offset : 7741
+Frequency : 7113.90212953
+Humidity : 61.02 %</code></pre>
+<p>Mesure de la fréquence à l'oscillo : * 7.260 kHz</p>
+<p>Il y a un une assez grande erreur sur la mesure de la fréquence. En effet, la mesure à l'oscilloscope est assez stable alors que la Frequce mesurée par le RPI varie bcp. Il faut revoir la technique de mesure de cette fréquence afin d'amélirer la précision et la fiabilité du capteur.</p>
+<p>D'après ce post : <a href="http://www.blaess.fr/christophe/2014/01/22/gpio-du-raspberry-pi-mesure-de-frequence/">GPIO du Raspberry Pi : mesure de fréquence</a>, une mesure de fréquence peut être très précise jusque 10kHhz et seulement 10% d'erreur a 100kHz. Le capteur fonctionnant de 5 à 10 KHz, nous devrions obtenir de bon résultat en utilisant un autre sofware pour d'échantillonnage.</p>
 </div>
 <div class="cell border-box-sizing code_cell vbox">
 <div class="input hbox">
